@@ -1,0 +1,14 @@
+{
+  "name": "paintball-game",
+  "version": "1.0.0",
+  "description": "A multiplayer paintball game",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve"
+  },
+  "dependencies": {
+    "firebase": "^9.15.0",
+    "phaser": "^3.55.2",
+    "serve": "^14.2.1"
+  }
+} 
