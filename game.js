@@ -60,6 +60,8 @@ let playersRef = ref(db, "players");
 let bulletsRef = ref(db, "bullets");
 let enemiesRef = ref(db, "enemies");
 
+let scene; // Add this at the top with other global variables
+
 function preload() {
     // Add error handling for image loading
     this.load.on('loaderror', function(file) {
@@ -97,6 +99,7 @@ function preload() {
 }
 
 function create() {
+    scene = this; // Store the scene reference
     this.cameras.main.setBackgroundColor('#000000');
     
     // Add error checking for sprite creation
@@ -141,11 +144,11 @@ function create() {
         // Collision detection
         this.physics.add.collider(bullets, enemies, bulletHitEnemy, null, this);
 
-        // Firebase listeners
+        // Modify the Firebase listeners to bind 'this'
         set(ref(db, `players/${playerName}`), { x: player.x, score: score });
-        onValue(playersRef, snapshot => updatePlayers(snapshot.val()));
-        onValue(bulletsRef, snapshot => updateBullets(snapshot.val()));
-        onValue(enemiesRef, snapshot => updateEnemies(snapshot.val()));
+        onValue(playersRef, (snapshot) => updatePlayers.call(this, snapshot.val()));
+        onValue(bulletsRef, (snapshot) => updateBullets.call(this, snapshot.val()));
+        onValue(enemiesRef, (snapshot) => updateEnemies.call(this, snapshot.val()));
 
     } catch (error) {
         console.error('Error in create:', error);
@@ -289,13 +292,12 @@ function shoot() {
 }
 
 function updatePlayers(players) {
-    if (!players) return;
+    if (!players || !this.children) return;
     
     try {
         Object.entries(players).forEach(([id, data]) => {
-            if (id !== playerName && this && this.add) {
-                // Update or create other players
-                let otherPlayer = this.children?.getByName(`player_${id}`);
+            if (id !== playerName) {
+                let otherPlayer = this.children.getByName(`player_${id}`);
                 if (!otherPlayer) {
                     otherPlayer = this.add.sprite(data.x, config.height - 50, 'player');
                     otherPlayer.name = `player_${id}`;
@@ -311,22 +313,30 @@ function updatePlayers(players) {
 }
 
 function updateBullets(bulletsData) {
-    if (!bulletsData) return;
-    Object.entries(bulletsData).forEach(([key, data]) => {
-        if (data.playerId !== playerName) {
-            bullets.create(data.x, data.y, 'bullet').setVelocityY(-400);
-            remove(ref(db, `bullets/${key}`));
-        }
-    });
+    if (!bulletsData || !scene) return;
+    try {
+        Object.entries(bulletsData).forEach(([key, data]) => {
+            if (data.playerId !== playerName) {
+                bullets.create(data.x, data.y, 'bullet').setVelocityY(-400);
+                remove(ref(db, `bullets/${key}`));
+            }
+        });
+    } catch (error) {
+        console.error('Error updating bullets:', error);
+    }
 }
 
 function updateEnemies(enemiesData) {
-    if (!enemiesData) return;
-    enemies.clear(true, true);
-    Object.entries(enemiesData).forEach(([key, data]) => {
-        let enemy = enemies.create(data.x, data.y, 'enemy');
-        enemy.setVelocity(data.velocityX, data.velocityY);
-    });
+    if (!enemiesData || !scene) return;
+    try {
+        enemies.clear(true, true);
+        Object.entries(enemiesData).forEach(([key, data]) => {
+            let enemy = enemies.create(data.x, data.y, 'enemy');
+            enemy.setVelocity(data.velocityX, data.velocityY);
+        });
+    } catch (error) {
+        console.error('Error updating enemies:', error);
+    }
 }
 
 // Handle orientation change
