@@ -71,16 +71,28 @@ function preload() {
         console.log('Successfully loaded:', key);
     });
 
-    // Try both with and without the assets/ prefix
+    // Try loading images with both paths
     try {
-        this.load.image('player', 'assets/player.png');
-        this.load.image('bullet', 'assets/bullet.png');
-        this.load.image('enemy', 'assets/enemy.png');
-        this.load.image('left', 'assets/left.png');
-        this.load.image('right', 'assets/right.png');
-        this.load.image('shoot', 'assets/shoot.png');
+        // First try with assets/ prefix
+        this.load.image('player', './assets/player.png');
+        this.load.image('bullet', './assets/bullet.png');
+        this.load.image('enemy', './assets/enemy.png');
+        this.load.image('left', './assets/left.png');
+        this.load.image('right', './assets/right.png');
+        this.load.image('shoot', './assets/shoot.png');
     } catch (error) {
         console.error('Error in preload:', error);
+        // Fallback to root directory if assets/ fails
+        try {
+            this.load.image('player', 'player.png');
+            this.load.image('bullet', 'bullet.png');
+            this.load.image('enemy', 'enemy.png');
+            this.load.image('left', 'left.png');
+            this.load.image('right', 'right.png');
+            this.load.image('shoot', 'shoot.png');
+        } catch (fallbackError) {
+            console.error('Error in preload fallback:', fallbackError);
+        }
     }
 }
 
@@ -278,18 +290,24 @@ function shoot() {
 
 function updatePlayers(players) {
     if (!players) return;
-    Object.entries(players).forEach(([id, data]) => {
-        if (id !== playerName) {
-            // Update or create other players
-            let otherPlayer = this.children.getByName(`player_${id}`);
-            if (!otherPlayer) {
-                otherPlayer = this.add.sprite(data.x, config.height - 50, 'player');
-                otherPlayer.name = `player_${id}`;
-                otherPlayer.setTint(0x00ff00);
+    
+    try {
+        Object.entries(players).forEach(([id, data]) => {
+            if (id !== playerName && this && this.add) {
+                // Update or create other players
+                let otherPlayer = this.children?.getByName(`player_${id}`);
+                if (!otherPlayer) {
+                    otherPlayer = this.add.sprite(data.x, config.height - 50, 'player');
+                    otherPlayer.name = `player_${id}`;
+                    otherPlayer.setTint(0x00ff00);
+                } else {
+                    otherPlayer.x = data.x;
+                }
             }
-            otherPlayer.x = data.x;
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Error updating players:', error);
+    }
 }
 
 function updateBullets(bulletsData) {
@@ -321,3 +339,4 @@ window.addEventListener('orientationchange', () => {
         }
     }, 100);
 });
+
